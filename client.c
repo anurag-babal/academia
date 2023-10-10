@@ -17,7 +17,6 @@ int main(int argc, char **argv)
     }
     char *ip_address = argv[1];
     int port_number = atoi(argv[2]);
-
     struct sockaddr_in server_address;
     int sd = socket(AF_INET, SOCK_STREAM, 0);
     if (sd < 0) {
@@ -36,18 +35,13 @@ int main(int argc, char **argv)
     }
     printf("Client to server connection successfully established\n");
 
-    int n, bytes_to_recv;
     char send_buff[20], recv_buff[1024];
-    char* move_ptr;
-
-    while(1) {
-        memset(recv_buff, 0, sizeof(recv_buff));
-        recv(sd, recv_buff, bytes_to_recv, 0);
+    memset(recv_buff, 0, sizeof(recv_buff));
+    while(read(sd, recv_buff, sizeof(recv_buff)) > 0) {    
         write(STDOUT_FILENO, recv_buff, strlen(recv_buff));
-
-        memset(send_buff, 0, sizeof(send_buff));
         read_line(STDIN_FILENO, send_buff, sizeof(send_buff));
-        send(sd, send_buff, strlen(send_buff), 0);
+        write(sd, send_buff, strlen(send_buff));
+        memset(recv_buff, 0, sizeof(recv_buff));
     }
 
     // Close the socket
