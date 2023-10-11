@@ -9,167 +9,53 @@ Date: 05th Oct, 2023.
 
 #include "server.h"
 
-char buff[1024];
-void my_strcpy(char *dest, char *src) {
-    while (*src != '\n') {
-        *dest = *src;
-        dest++;
-        src++;
-    }
-    *dest = '\0';
-}
-
-void my_itoa(int num, char *str, int base) {
-    int i = 0;
-    while (num > 0) {
-        int digit = num % base;
-        str[i] = digit + '0';
-        i++;
-        num = num / base;
-    }
-    str[i] = '\0';
-}
-
-int login(int client_socket, char *user_name, char *password) {
+int login(int client_socket, int type) {
     char *str;
     int n, status;
-    char recv_buff[20], userName[20];
+    char recv_buff[20], login_id[50], password[50];
     str = "Enter user-name: ";
     write(client_socket, str, strlen(str));
 
     n = read_line(client_socket, recv_buff, sizeof(recv_buff));
-    my_strcpy(userName, recv_buff);
+    my_strcpy(login_id, recv_buff);
 
     str = "Enter password: ";
     write(client_socket, str, strlen(str));
     memset(recv_buff, 0, sizeof(recv_buff));
 
     n = read_line(client_socket, recv_buff, sizeof(recv_buff));
-    my_strcpy(userName, recv_buff);
+    my_strcpy(password, recv_buff);
 
-    if(strcmp(password, userName) == 0) {
-        str = "login successful\n";
-        status = 1;
-    } else {
-        str = "login not successful\n";
-        status = 0;
+    int fd;
+    struct login st;
+    switch(type) {
+        case ADMIN:
+            if((strcmp(login_id, "admin") == 0) && (strcmp(password, "pass") == 0))
+                status = 1;
+            break;
+        case FACULTY:
+        case STUDENT:
+            openLoginFile(&fd, O_RDONLY);
+            while(1) {
+                n = read(fd, &st, sizeof(struct login));
+                if(n < 0) {
+                    perror("read");
+                    break;
+                }
+                if(n == 0) break;
+                if(checkLoginDetails(login_id, password)) {
+                    status = 1;
+                    break;
+                }
+            }
     }
+
+    if(status)
+        str = "login successful\n";
+    else
+        str = "login not successful\n";
     write(client_socket, str, strlen(str));
     return status;
-}
-
-int addStudent(int client_socket) {
-    struct student st, tmp;
-    int fd = open("student_details", O_RDWR);
-    char recv_buff[20], roll_no[10] = "MT";
-    int n, status = 0;
-    char *str;
-
-    memset(recv_buff, 0, sizeof(recv_buff));
-    str = "Name: ";
-    write(client_socket, str, strlen(str));
-    n = read_line(client_socket, recv_buff, sizeof(recv_buff));
-    my_strcpy(st.name, recv_buff);
-
-    memset(recv_buff, 0, sizeof(recv_buff));
-    str = "Age: ";
-    write(client_socket, str, strlen(str));
-    n = read_line(client_socket, recv_buff, sizeof(recv_buff));
-    st.age = atoi(recv_buff);
-
-    memset(recv_buff, 0, sizeof(recv_buff));
-    str = "Email: ";
-    write(client_socket, str, strlen(str));
-    n = read_line(client_socket, recv_buff, sizeof(recv_buff));
-    my_strcpy(st.email, recv_buff);
-
-    memset(recv_buff, 0, sizeof(recv_buff));
-    str = "Address: ";
-    write(client_socket, str, strlen(str));
-    n = read_line(client_socket, recv_buff, sizeof(recv_buff));
-    my_strcpy(st.address, recv_buff);
-
-    if(read(fd, buff, 1) == 0) {
-        st.id = 1;
-    } else {
-        lseek(fd, -sizeof(st), SEEK_END);
-        read(fd, &tmp, sizeof(tmp));
-        st.id = tmp.id + 1;
-    }
-    st.status = 0;
-    char abc[20];
-    my_itoa(st.id, abc, 10);
-    strcat(roll_no, abc);
-    strcpy(st.roll_no, roll_no);
-    strcpy(st.password, "password");
-
-    lseek(fd, 0, SEEK_END);
-    write(fd, &st, sizeof(struct student));
-    close(fd);
-
-    str = "Student Created Successfully\nLogin-id -> ";
-    send(client_socket, str, strlen(str), MSG_DONTWAIT);
-    send(client_socket, st.roll_no, strlen(st.roll_no), MSG_DONTWAIT);
-    str = "\nStudent Id -> ";
-    send(client_socket, str, strlen(str), MSG_DONTWAIT);
-    memset(buff, 0, sizeof(buff));
-    my_itoa(st.id, buff, 10);
-    send(client_socket, buff, strlen(buff), MSG_DONTWAIT);
-    write(client_socket, "\n", 1);
-}
-
-int viewStudent(int client_socket) {
-    struct student st;
-    int fd = open("student_details", O_RDWR);
-    char recv_buff[20], roll_no[10];
-    int n, status = 0;
-    char *str;
-    
-    memset(recv_buff, 0, sizeof(recv_buff));
-    str = "Roll Number: ";
-    write(client_socket, str, strlen(str));
-    n = read_line(client_socket, recv_buff, sizeof(recv_buff));
-    my_strcpy(roll_no, recv_buff);
-    while(1) {
-        n = read(fd, &st, sizeof(struct student));
-        if(n < 0) {
-            perror("read");
-            _exit(EXIT_FAILURE);
-        }
-        if(n == 0) break;
-        if(strcmp(st.roll_no, roll_no) == 0) {
-            str = "Name: ";
-            send(client_socket, str, strlen(str), MSG_DONTWAIT);
-            send(client_socket, st.name, strlen(st.name), MSG_DONTWAIT);
-
-            str = "\nAge: ";
-            send(client_socket, str, strlen(str), MSG_DONTWAIT);
-            my_itoa(st.age, buff, 10);
-            send(client_socket, buff, strlen(buff), MSG_DONTWAIT);
-
-            str = "\nEmail: ";
-            send(client_socket, str, strlen(str), MSG_DONTWAIT);
-            send(client_socket, st.email, strlen(st.email), MSG_DONTWAIT);
-
-            str = "\nAddress: ";
-            send(client_socket, str, strlen(str), MSG_DONTWAIT);
-            send(client_socket, st.address, strlen(st.address), MSG_DONTWAIT);
-
-            str = "\nLogin-id: ";
-            send(client_socket, str, strlen(str), MSG_DONTWAIT);
-            send(client_socket, st.roll_no, strlen(st.roll_no), MSG_DONTWAIT);
-
-            write(client_socket, "\n", 1);
-
-            status = 1;
-            break;
-        }
-    }
-    if(!status) {
-        str = "Student not found\n";
-        write(client_socket, str, strlen(str));
-    }
-    close(fd);
 }
 
 void adminMenu(int client_socket) {
@@ -192,13 +78,64 @@ void adminMenu(int client_socket) {
                 viewStudent(client_socket);
                 break;
             case 3:
-                printf("inside 3\n");
                 addFaculty(client_socket);
                 break;
             case 4:
-                printf("inside 4\n");
+                viewFaculty(client_socket);
                 break;
             case 5:
+                modifyStudent(client_socket, 2);
+                break;
+            case 6:
+                modifyStudent(client_socket, 1);
+                break;
+            case 7:
+                modifyStudent(client_socket, 3);
+                break;
+            case 8:
+                modifyFaculty(client_socket);
+                break;
+            case 9:
+                str = "Logged out\nPress Enter to close the connection";
+                write(client_socket, str, strlen(str));
+                status = 1;
+                break;
+            default:
+                str = "Enter correct choice\n";
+                write(client_socket, str, strlen(str));
+        }
+    }
+}
+
+void facultyMenu(int client_socket) {
+    char recv_buff[20];
+    int n, status = 0;
+    char *str;
+    char welcome_msg[250] = "...Welcome to Faculty Menu...\n";
+    char *menu = "1. View Offering Courses\n2. Add new course\n3. Remove course\n4. Update Course\n5. Change password\n\
+6. Logout\nEnter your choice: ";
+    strcat(welcome_msg, menu);
+    // n = read_line(client_socket, recv_buff, sizeof(recv_buff));
+    while(!status) {
+        send(client_socket, welcome_msg, strlen(welcome_msg), MSG_DONTWAIT);
+        read_line(client_socket, recv_buff, sizeof(recv_buff));
+        switch(atoi(recv_buff)) {
+            case 1:
+                viewCourses(client_socket);
+                break;
+            case 2:
+                addCourse(client_socket);
+                break;
+            case 3:
+                removeCourse(client_socket);
+                break;
+            case 4:
+                modifyCourse(client_socket);
+                break;
+            case 5:
+                modifyStudent(client_socket, 2);
+                break;
+            case 6:
                 str = "Logged out\nPress Enter to close the connection";
                 write(client_socket, str, strlen(str));
                 status = 1;
@@ -211,16 +148,17 @@ void adminMenu(int client_socket) {
 }
 
 void handleAdmin(int client_socket) {
-    while(!login(client_socket, "admin", "password"));
+    while(!login(client_socket, ADMIN));
     adminMenu(client_socket);
 }
 
 void handleFaculty(int client_socket) {
-    while(!login(client_socket, "abc", "pass"));
+    while(!login(client_socket, FACULTY));
+    facultyMenu(client_socket);
 }
 
 void handleStudent(int client_socket) {
-    while(!login(client_socket, "anurag", "password"));
+    while(!login(client_socket, STUDENT));
 }
 
 int main(int argc, char **argv)
