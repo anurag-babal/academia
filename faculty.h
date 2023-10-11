@@ -55,7 +55,7 @@ int writeFaculty(int fd, struct faculty *st, int operation) {
 }
 
 void openFacultyFile(int *fd, int flag) {
-    *fd = open("faculty_details", flag);
+    *fd = open("faculty_details", flag | O_CREAT, 0600);
     if(*fd == -1) {
         perror("open");
     }
@@ -116,8 +116,8 @@ int addFaculty(int client_socket) {
     char abc[20];
     my_itoa(st.id, abc, 10);
     strcat(login_id, abc);
-    strcpy(st.login_id, login_id);
-    saveLoginDetails(st.id, st.login_id, default_password, ADD);
+    my_strcpy(st.login_id, login_id);
+    saveLoginDetails(st.id, st.login_id, default_password, FACULTY, ADD);
 
     writeFaculty(fd, &st, ADD);
     close(fd);

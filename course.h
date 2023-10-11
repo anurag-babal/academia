@@ -57,7 +57,7 @@ int writeCourse(int fd, struct course *st, int operation) {
 }
 
 void openCourseFile(int *fd, int flag) {
-    *fd = open("course_details", flag);
+    *fd = open("course_details", flag | O_CREAT, 0600);
     if(*fd == -1) {
         perror("open");
     }

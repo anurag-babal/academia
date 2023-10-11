@@ -43,7 +43,7 @@ int login(int client_socket, int type) {
                     break;
                 }
                 if(n == 0) break;
-                if(checkLoginDetails(login_id, password)) {
+                if(checkLoginDetails(login_id, password, type)) {
                     status = 1;
                     break;
                 }
@@ -133,7 +133,7 @@ void facultyMenu(int client_socket) {
                 modifyCourse(client_socket);
                 break;
             case 5:
-                modifyStudent(client_socket, 2);
+                changePassword(client_socket, FACULTY);
                 break;
             case 6:
                 str = "Logged out\nPress Enter to close the connection";

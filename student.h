@@ -56,7 +56,7 @@ void writeStudent(int fd, struct student *st, int operation) {
 }
 
 void openStudentFile(int *fd, int flag) {
-    *fd = open("student_details", flag);
+    *fd = open("student_details", flag | O_CREAT, 0600);
     if(*fd == -1) {
         perror("open");
     }
@@ -112,7 +112,7 @@ int addStudent(int client_socket) {
     my_itoa(st.id, abc, 10);
     strcat(roll_no, abc);
     strcpy(st.roll_no, roll_no);
-    saveLoginDetails(st.id, st.roll_no, default_password, ADD);
+    saveLoginDetails(st.id, st.roll_no, default_password, STUDENT, ADD);
 
     writeStudent(fd, &st, ADD);
     close(fd);

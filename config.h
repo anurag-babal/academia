@@ -12,6 +12,8 @@
 #define STUDENT 8
 
 int faculty_id = 0;
+char faculty_login_id[50];
+char student_login_id[50];
 char buff[1024];
 char *default_password = "pass";
 
