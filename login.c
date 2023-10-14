@@ -1,12 +1,4 @@
-#ifndef LOGIN_H
-#define LOGIN_H
-
-struct login {
-    int id;
-    char login_id[50];
-    char password[50];
-    int type;
-};
+#include "config.h"
 
 void previousNLogin(int fd, int n, int whence) {
     lseek(fd, -(n * (sizeof(struct login))), whence);
@@ -115,5 +107,3 @@ void changePassword(int client_socket, int type) {
 
     close(fd);
 }
-
-#endif

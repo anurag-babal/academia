@@ -7,7 +7,8 @@ Date: 05th Oct, 2023.
 ============================================================================
 */
 
-#include "server.h"
+#include "headers.h"
+#include "config.h"
 
 int login(int client_socket, int type) {
     char *str;
@@ -121,7 +122,7 @@ void facultyMenu(int client_socket) {
         read_line(client_socket, recv_buff, sizeof(recv_buff));
         switch(atoi(recv_buff)) {
             case 1:
-                viewCourses(client_socket);
+                viewAllCoursesForFaculty(client_socket);
                 break;
             case 2:
                 addCourse(client_socket);
@@ -147,6 +148,45 @@ void facultyMenu(int client_socket) {
     }
 }
 
+void studentMenu(int client_socket) {
+    char recv_buff[20];
+    int n, status = 0;
+    char *str;
+    char welcome_msg[250] = "...Welcome to Student Menu...\n";
+    char *menu = "1. View All Courses\n2. Enroll new course\n3. Drop course\n4. View enrolled course details\n5. Change password\n\
+6. Logout\nEnter your choice: ";
+    strcat(welcome_msg, menu);
+    while(!status) {
+        send(client_socket, welcome_msg, strlen(welcome_msg), MSG_DONTWAIT);
+        read_line(client_socket, recv_buff, sizeof(recv_buff));
+        switch(atoi(recv_buff)) {
+            case 1:
+                viewAllCourses(client_socket);
+                break;
+            case 2:
+                registerStudent(client_socket);
+                break;
+            case 3:
+                dropCourse(client_socket);
+                break;
+            case 4:
+                viewEnrolledCourses(client_socket);
+                break;
+            case 5:
+                changePassword(client_socket, STUDENT);
+                break;
+            case 6:
+                str = "Logged out\nPress Enter to close the connection";
+                write(client_socket, str, strlen(str));
+                status = 1;
+                break;
+            default:
+                str = "Enter correct choice\n";
+                write(client_socket, str, strlen(str));
+        }
+    }
+}
+
 void handleAdmin(int client_socket) {
     while(!login(client_socket, ADMIN));
     adminMenu(client_socket);
@@ -158,7 +198,8 @@ void handleFaculty(int client_socket) {
 }
 
 void handleStudent(int client_socket) {
-    while(!login(client_socket, STUDENT));
+    // while(!login(client_socket, STUDENT));
+    studentMenu(client_socket);
 }
 
 int main(int argc, char **argv)
