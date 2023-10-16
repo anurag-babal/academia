@@ -7,7 +7,8 @@ Date: 20th Sept, 2023.
 ============================================================================
 */
 
-#include "headers.h"
+#include "../headers/headers.h"
+#include "../headers/read_line.h"
 
 int main(int argc, char **argv)
 {
@@ -39,8 +40,11 @@ int main(int argc, char **argv)
     memset(recv_buff, 0, sizeof(recv_buff));
     while(read(sd, recv_buff, sizeof(recv_buff)) > 0) {    
         write(STDOUT_FILENO, recv_buff, strlen(recv_buff));
+
+        memset(send_buff, 0, sizeof(send_buff));
         read_line(STDIN_FILENO, send_buff, sizeof(send_buff));
         write(sd, send_buff, strlen(send_buff));
+        
         memset(recv_buff, 0, sizeof(recv_buff));
     }
 

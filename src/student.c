@@ -1,7 +1,13 @@
-#include "config.h"
+#include "../headers/headers.h"
+#include "../headers/config.h"
+#include "../headers/student.h"
+#include "../headers/course.h"
+#include "../headers/constant.h"
+#include "../headers/login.h"
+#include "../headers/read_line.h"
+#include "../headers/registration.h"
 
 int readStudentRecordFromFile(int fd, struct student *st) {
-    int status = 0;
     int n = read(fd, st, sizeof(struct student));
     if(n < 0) {
         perror("read");
@@ -12,33 +18,17 @@ int readStudentRecordFromFile(int fd, struct student *st) {
 }
 
 int findStudentById(int fd, struct student *st, int id) {
-    int status = 0;
-    while(1) {
-        if(readStudentRecordFromFile(fd, st) == 1) {
-            if(st->id == id) {
-                status = 1;
-                break;
-            }
-        } else break;
+    while(read(fd, st, sizeof(struct student)) > 0) {
+        if(st->id == id) return 1;
     }
-    return status;
-}
-
-int getStudentIdFromClient(int client_socket) {
-    char recv_buff[20];
-
-    memset(recv_buff, 0, sizeof(recv_buff));
-    str = "Enter Studetn Id: ";
-    write(client_socket, str, strlen(str));
-    read_line(client_socket, recv_buff, sizeof(recv_buff));
-    return atoi(recv_buff);
+    return 0;
 }
 
 void previousNStudent(int fd, int n, int whence) {
     lseek(fd, -(n * (sizeof(struct student))), whence);
 }
 
-void writeStudent(int fd, struct student *st, int operation) {
+int writeStudent(int fd, struct student *st, int operation) {
     switch(operation) {
         case ADD:
             lseek(fd, 0, SEEK_END);
@@ -47,7 +37,7 @@ void writeStudent(int fd, struct student *st, int operation) {
             previousNStudent(fd, 1, SEEK_CUR);
             break;
     }
-    write(fd, st, sizeof(struct student));
+    return write(fd, st, sizeof(struct student));
 }
 
 void openStudentFile(int *fd, int flag) {
@@ -59,7 +49,7 @@ void openStudentFile(int *fd, int flag) {
 
 void getStudentDetails(int client_socket, struct student *st) {
     char *str;
-    char recv_buff[50];
+    char recv_buff[50], buff[50];
 
     memset(buff, 0, sizeof(recv_buff));
     str = "Name: ";
@@ -88,75 +78,95 @@ void getStudentDetails(int client_socket, struct student *st) {
 
 int addStudent(int client_socket) {
     struct student st, tmp;
-    int fd = open("student_details", O_RDWR);
-    char roll_no[10] = "MT";
+    int fd;
+    char roll_no[10] = "MT", buff[50];
     int n, status = 0;
-    char *str;
+    char *msg;
 
+    openStudentFile(&fd, O_RDWR);
     getStudentDetails(client_socket, &st);
-    if(read(fd, buff, 1) == 0) {
+    if(read(fd, buff, 1) <= 0) {
         st.id = 1;
     } else {
         previousNStudent(fd, 1, SEEK_END);
-        read(fd, &tmp, sizeof(tmp));
+        read(fd, &tmp, sizeof(struct student));
         st.id = tmp.id + 1;
     }
-    st.status = 1;
-
+    st.status = 0;
     char abc[20];
     my_itoa(st.id, abc, 10);
     strcat(roll_no, abc);
-    strcpy(st.roll_no, roll_no);
-    saveLoginDetails(st.id, st.roll_no, default_password, STUDENT, ADD);
-
-    writeStudent(fd, &st, ADD);
+    my_strcpy(st.roll_no, roll_no);
+    printf("%s\n", st.roll_no);
+    saveLoginDetails(st.id, st.roll_no, DEFAULT_PASS, STUDENT, ADD);
+    for(int i = 0; i < MAX_COURSE; i++)
+        st.enrolled_courses[i] = 0;
+    if(writeStudent(fd, &st, ADD) > 0) {
+        printf("Student saved\n");
+    } else printf("Failed\n");
     close(fd);
 
-    str = "Student Created Successfully\nLogin-id -> ";
-    send(client_socket, str, strlen(str), MSG_DONTWAIT);
-    send(client_socket, st.roll_no, strlen(st.roll_no), MSG_DONTWAIT);
-    str = "\nStudent Id -> ";
-    send(client_socket, str, strlen(str), MSG_DONTWAIT);
+    msg = "Student Created Successfully\nLogin-id -> ";
+    send(client_socket, msg, strlen(msg), MSG_MORE);
+    send(client_socket, st.roll_no, strlen(st.roll_no), MSG_MORE);
+    msg = "\nStudent Id -> ";
+    send(client_socket, msg, strlen(msg), MSG_MORE);
     memset(buff, 0, sizeof(buff));
     my_itoa(st.id, buff, 10);
-    send(client_socket, buff, strlen(buff), MSG_DONTWAIT);
-    write(client_socket, "\n", 1);
+    send(client_socket, buff, strlen(buff), MSG_MORE);
+    msg = "\n============\n";
+    send(client_socket, msg, strlen(msg), MSG_MORE);
 }
 
 void viewStudent(int client_socket) {
     struct student st;
     char *str;
+    char buff[50];
     int fd;
     openStudentFile(&fd, O_RDONLY);
-    int id = getStudentIdFromClient(client_socket);
-    if(findStudentById(client_socket, &st, id)) {
+    int id = getIdFromClient(client_socket, "Enter Id: ");
+    if(findStudentById(fd, &st, id)) {
         str = "Name: ";
-        send(client_socket, str, strlen(str), MSG_DONTWAIT);
-        send(client_socket, st.name, strlen(st.name), MSG_DONTWAIT);
+        send(client_socket, str, strlen(str), MSG_MORE);
+        send(client_socket, st.name, strlen(st.name), MSG_MORE);
 
         str = "\nAge: ";
-        send(client_socket, str, strlen(str), MSG_DONTWAIT);
-        printf("%d\n", st.age);
+        send(client_socket, str, strlen(str), MSG_MORE);
         my_itoa(st.age, buff, 10);
-        printf("%s\n", buff);
-        send(client_socket, buff, strlen(buff), MSG_DONTWAIT);
+        send(client_socket, buff, strlen(buff), MSG_MORE);
 
         str = "\nEmail: ";
-        send(client_socket, str, strlen(str), MSG_DONTWAIT);
-        send(client_socket, st.email, strlen(st.email), MSG_DONTWAIT);
+        send(client_socket, str, strlen(str), MSG_MORE);
+        send(client_socket, st.email, strlen(st.email), MSG_MORE);
 
         str = "\nAddress: ";
-        send(client_socket, str, strlen(str), MSG_DONTWAIT);
-        send(client_socket, st.address, strlen(st.address), MSG_DONTWAIT);
+        send(client_socket, str, strlen(str), MSG_MORE);
+        send(client_socket, st.address, strlen(st.address), MSG_MORE);
 
         str = "\nLogin-id: ";
-        send(client_socket, str, strlen(str), MSG_DONTWAIT);
-        send(client_socket, st.roll_no, strlen(st.roll_no), MSG_DONTWAIT);
+        send(client_socket, str, strlen(str), MSG_MORE);
+        send(client_socket, st.roll_no, strlen(st.roll_no), MSG_MORE);
 
-        write(client_socket, "\n", 1);
+        str = "\nEnrolled courses: ";
+        send(client_socket, str, strlen(str), MSG_MORE);
+        memset(buff, 0, sizeof(buff));
+        int enrolled_course;
+        char tmp[10];
+        for(int i = 0; i < MAX_COURSE; i++) {
+            enrolled_course = st.enrolled_courses[i];
+            if(enrolled_course != 0) {
+                my_itoa(enrolled_course, tmp, 10);
+                strcat(buff, " ");
+                strcat(buff, tmp);
+            }
+        }
+        send(client_socket, buff, strlen(buff), MSG_MORE);
+
+        str = "\n=============\n";
+        send(client_socket, str, strlen(str), MSG_MORE);
     } else {
         str = "Student not found\n";
-        write(client_socket, str, strlen(str));
+        send(client_socket, str, strlen(str), MSG_MORE);
     }
     close(fd);
 }
@@ -166,16 +176,16 @@ int modifyStudent(int client_socket, int action) {
     char *str;
     int fd;
     openStudentFile(&fd, O_RDWR);
-    int id = getStudentIdFromClient(client_socket);
-    if(findStudentById(client_socket, &st, id)) {
+    int id = getIdFromClient(client_socket, "Enter Student Id: ");
+    if(findStudentById(fd, &st, id)) {
         switch(action) {
-            case 1:
+            case INACTIVE:
                 st.status = 0;
                 break;
-            case 2:
+            case ACTIVE:
                 st.status = 1;
                 break;
-            case 3:
+            case UPDATE:
                 getStudentDetails(client_socket, &st);
                 break;
         }
@@ -204,25 +214,41 @@ int checkCourseAlreadyEnrolled(struct student st, int course_id) {
     return 0;
 }
 
-void registerStudent(int client_socket) {
+int updateEnrolledCourses(int student_id, struct student *st, int course_id) {
+    for(int i = 0; i < MAX_COURSE; i++) {
+        if(st->enrolled_courses[i] == 0) {
+            st->enrolled_courses[i] = course_id;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void registerStudent(int client_socket, int student_id) {
+    char *str;
     int fd_course, fd_student;
     struct student st_student;
     struct course st_course;
-    int course_id = getCourseIdFromClient(client_socket);
+    int course_id = getIdFromClient(client_socket, "Enter course id: ");
     
     openCourseFile(&fd_course, O_RDONLY);
     openStudentFile(&fd_student, O_RDWR);
 
     if(findStudentById(fd_student, &st_student, student_id)) {
+        printf("st_id: %d\n", st_student.id);
         if(getEnrolledCoursesCount(st_student) > MAX_COURSE) {
             str = "You have reached your maximum limit\n";
         } else if(checkCourseAlreadyEnrolled(st_student, course_id)) {
             str = "You have already registered for this course\n";
         } else {
             if(findCourseById(fd_course, &st_course, course_id)) {
+                printf("course id: %d\n", st_course.id);
                 if(st_course.available_seats != 0) {
                     if(insertNewStudent(student_id, course_id)) {
+                        updateEnrolledCourses(student_id, &st_student, course_id);
                         updateSeat(course_id, DEC);
+                        writeStudent(fd_student, &st_student, UPDATE);
+                        str = "Student registered successfully\n";
                     } else {
                         str = "Can't register\n";
                     }
@@ -236,27 +262,57 @@ void registerStudent(int client_socket) {
     } else {
         str = "Student not found\n";
     }
-    write(client_socket, str, strlen(str));
+    send(client_socket, str, strlen(str), MSG_MORE);
     close(fd_student);
     close(fd_course);
 }
 
-void dropCourse(int client_socket) {
-    int fd;
-    struct course st;
-    int course_id = getCourseIdFromClient(client_socket);
-    openCourseFile(&fd, O_RDONLY);
-    if(findCourseById(fd, &st, course_id)) {
-        removeStudentFromCourse(student_id, course_id);
-        updateSeat(course_id, INC);
-    } else {
-        char *str = "Course not found\n";
-        write(client_socket, str, strlen(str));
+
+int dropEnrolledCourse(struct student *st, int course_id) {
+    for(int i = 0; i < MAX_COURSE; i++) {
+        if(st->enrolled_courses[i] == course_id) {
+            st->enrolled_courses[i] = 0;
+            return 1;
+        }
     }
+    return 0;
+}
+
+void removeEnrolledCourse(int student_id, int course_id) {
+    int fd;
+    struct student st;
+    openStudentFile(&fd, O_RDWR);
+    findStudentById(fd, &st, student_id);
+    dropEnrolledCourse(&st, course_id);
+    writeStudent(fd, &st, UPDATE);
     close(fd);
 }
 
-void viewEnrolledCourses(int client_socket) {
+void dropCourse(int client_socket, int student_id) {
+    int fd_course, fd_student;
+    char *str;
+    struct course st_course;
+    struct student st_student;
+    int course_id = getCourseIdFromClient(client_socket);
+    openCourseFile(&fd_course, O_RDONLY);
+    if(findCourseById(fd_course, &st_course, course_id)) {
+        openStudentFile(&fd_student, O_RDWR);
+        findStudentById(fd_student, &st_student, student_id);
+        removeStudentFromCourse(student_id, course_id);
+        dropEnrolledCourse(&st_student, course_id);
+        writeStudent(fd_student, &st_student, UPDATE);
+        updateSeat(course_id, INC);
+        close(fd_student);
+        str = "Course dropped successfully";
+    } else {
+        str = "Course not found\n";
+    }
+    send(client_socket, str, strlen(str), MSG_MORE);
+    close(fd_course);
+}
+
+void viewEnrolledCourses(int client_socket, int student_id) {
+    char *str;
     int fd_student, fd_course;
     struct student st;
     struct course st_course;
@@ -273,7 +329,7 @@ void viewEnrolledCourses(int client_socket) {
         close(fd_course);
     } else {
         str = "Student not found\n";
-        write(client_socket, str, strlen(str));
+        send(client_socket, str, strlen(str), MSG_MORE);
     }
     close(fd_student);
 }

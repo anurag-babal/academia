@@ -1,9 +1,10 @@
-#include "read_line.h"
+#include "../headers/headers.h"
+#include "../headers/read_line.h"
 
-ssize_t read_line(int fd, void *buffer, size_t n)
+int read_line(int fd, void *buffer, int n)
 {
-    ssize_t numRead; /* # of bytes fetched by last read() */
-    size_t totRead;  /* Total bytes read so far */
+    int numRead; /* # of bytes fetched by last read() */
+    int totRead;  /* Total bytes read so far */
     char *buf;
     char ch;
     

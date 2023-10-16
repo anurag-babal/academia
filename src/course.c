@@ -1,4 +1,9 @@
-#include "config.h"
+#include "../headers/headers.h"
+#include "../headers/config.h"
+#include "../headers/constant.h"
+#include "../headers/course.h"
+#include "../headers/read_line.h"
+#include "../headers/registration.h"
 
 int readCourseRecordFromFile(int fd, struct course *st) {
     int status = 0;
@@ -61,7 +66,8 @@ void openCourseFile(int *fd, int flag) {
 }
 
 void getCourseDetails(int client_socket, struct course *st) {
-    char recv_buff[50];
+    char *str;
+    char recv_buff[50], buff[50];
 
     memset(buff, 0, sizeof(recv_buff));
     str = "Name: ";
@@ -90,40 +96,42 @@ void getCourseDetails(int client_socket, struct course *st) {
 
 void displayCourseDetail(int client_socket, struct course *st) {
     char *str;
+    char buff[50];
 
     str = "Id: ";
-    send(client_socket, str, strlen(str), MSG_DONTWAIT);
+    send(client_socket, str, strlen(str), MSG_MORE);
     my_itoa(st->id, buff, 10);
-    send(client_socket, buff, strlen(buff), MSG_DONTWAIT);
+    send(client_socket, buff, strlen(buff), MSG_MORE);
 
     str = "\nName: ";
-    send(client_socket, str, strlen(str), MSG_DONTWAIT);
-    send(client_socket, st->name, strlen(st->name), MSG_DONTWAIT);
+    send(client_socket, str, strlen(str), MSG_MORE);
+    send(client_socket, st->name, strlen(st->name), MSG_MORE);
 
     str = "\nDepartment: ";
-    send(client_socket, str, strlen(str), MSG_DONTWAIT);
-    send(client_socket, st->department, strlen(st->department), MSG_DONTWAIT);
+    send(client_socket, str, strlen(str), MSG_MORE);
+    send(client_socket, st->department, strlen(st->department), MSG_MORE);
 
     str = "\nNo. of seats: ";
-    send(client_socket, str, strlen(str), MSG_DONTWAIT);
+    send(client_socket, str, strlen(str), MSG_MORE);
     my_itoa(st->total_seats, buff, 10);
-    send(client_socket, buff, strlen(buff), MSG_DONTWAIT);
+    send(client_socket, buff, strlen(buff), MSG_MORE);
 
     str = "\nCredits: ";
-    send(client_socket, str, strlen(str), MSG_DONTWAIT);
+    send(client_socket, str, strlen(str), MSG_MORE);
     my_itoa(st->credits, buff, 10);
-    send(client_socket, buff, strlen(buff), MSG_DONTWAIT);
+    send(client_socket, buff, strlen(buff), MSG_MORE);
 
     str = "\nNo. of available seats: ";
-    send(client_socket, str, strlen(str), MSG_DONTWAIT);
+    send(client_socket, str, strlen(str), MSG_MORE);
     my_itoa(st->available_seats, buff, 10);
-    send(client_socket, buff, strlen(buff), MSG_DONTWAIT);
+    send(client_socket, buff, strlen(buff), MSG_MORE);
 
-    str = "\n\n";
-    write(client_socket, str, strlen(str));
+    str = "\n=============\n";
+    send(client_socket, str, strlen(str), MSG_MORE);
 }
 
-int addCourse(int client_socket) {
+int addCourse(int client_socket, int faculty_id) {
+    char buff[50];
     struct course st, tmp;
     int fd;
     openCourseFile(&fd, O_RDWR);
@@ -147,11 +155,12 @@ int addCourse(int client_socket) {
     close(fd);
 
     str = "Course Created Successfully\nCourse-id -> ";
-    send(client_socket, str, strlen(str), MSG_DONTWAIT);
+    send(client_socket, str, strlen(str), MSG_MORE);
     memset(buff, 0, sizeof(buff));
     my_itoa(st.id, buff, 10);
-    send(client_socket, buff, strlen(buff), MSG_DONTWAIT);
-    write(client_socket, "\n", 1);
+    send(client_socket, buff, strlen(buff), MSG_MORE);
+    str = "\n=============\n";
+    send(client_socket, str, strlen(str), MSG_MORE);
 }
 
 void viewAllCourses(int client_socket) {
@@ -173,17 +182,16 @@ void viewAllCourses(int client_socket) {
     }
     if(!status) {
         str = "No course available.\n";
-        write(client_socket, str, strlen(str));
+        send(client_socket, str, strlen(str), MSG_MORE);
     }
     close(fd);
 }
 
-void viewAllCoursesForFaculty(int client_socket) {
+void viewAllCoursesForFaculty(int client_socket, int faculty_id) {
     struct course st;
     char *str;
     char recv_buff[20];
     int n, status = 0;
-
     int fd;
     openCourseFile(&fd, O_RDONLY);
 
@@ -197,22 +205,23 @@ void viewAllCoursesForFaculty(int client_socket) {
     }
     if(!status) {
         str = "No course offered.\n";
-        write(client_socket, str, strlen(str));
+        send(client_socket, str, strlen(str), MSG_MORE);
     }
     close(fd);
 }
 
 int modifyCourse(int client_socket) {
+    char *str;
     struct course st;
     int fd;
     openCourseFile(&fd, O_RDWR);
-    int id = getCourseIdFromClient(client_socket);
+    int id = getIdFromClient(client_socket, "Enter course id: ");
     if(findCourseById(fd, &st, id)) {
         int total_seats = st.total_seats;
         int enrolled_seats = st.total_seats - st.available_seats;
         getCourseDetails(client_socket, &st);
         if(st.total_seats < enrolled_seats) {
-            removeLastNStudent(st.id, (st.total_seats - enrolled_seats));
+            removeLastNStudent(st.id, (enrolled_seats - st.total_seats));
             st.available_seats = 0;
         } else {
             st.available_seats = st.total_seats - enrolled_seats;
@@ -220,12 +229,13 @@ int modifyCourse(int client_socket) {
         writeCourse(fd, &st, UPDATE);
     } else {
         str = "Course not found\n";
-        write(client_socket, str, strlen(str));
+        send(client_socket, str, strlen(str), MSG_MORE);
     }
     close(fd);
 }
 
 void removeCourse(int client_socket) {
+    char *str;
     struct course st;
     int fd;
     openCourseFile(&fd, O_RDWR);
@@ -235,7 +245,7 @@ void removeCourse(int client_socket) {
         writeCourse(fd, &st, UPDATE);
     } else {
         str = "Course not found\n";
-        write(client_socket, str, strlen(str));
+        send(client_socket, str, strlen(str), MSG_MORE);
     }
     close(fd);
 }

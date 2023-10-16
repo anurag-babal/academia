@@ -1,6 +1,15 @@
 {
     "files.associations": {
         "server.h": "c",
-        "headers.h": "c"
+        "headers.h": "c",
+        "login.h": "c",
+        "course.h": "c",
+        "student.h": "c",
+        "read_line.h": "c",
+        "constant.h": "c",
+        "faculty.h": "c",
+        "config.h": "c",
+        "registration.h": "c",
+        "admin.h": "c"
     }
 }

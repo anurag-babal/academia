@@ -1,5 +1,9 @@
-#include "headers.h"
-#include "config.h"
+#include "../headers/headers.h"
+#include "../headers/config.h"
+#include "../headers/course.h"
+#include "../headers/constant.h"
+#include "../headers/registration.h"
+#include "../headers/student.h"
 
 void openRegistrationFile(int *fd, int flag) {
     *fd = open("registration_details", flag | O_CREAT, 0600);
@@ -61,6 +65,7 @@ int insertNewStudent(int student_id, int course_id) {
     if(findRegistrationByCourseId(fd_reg, &st_reg, course_id)) {
         fd_course_file = open(st_reg.file_name, O_RDWR);
         st_enroll.student_id = student_id;
+        st_enroll.status = ACTIVE;
         st_reg.count++;
         lseek(fd_reg, -(sizeof(struct registration)), SEEK_CUR);
     } else {
@@ -69,7 +74,7 @@ int insertNewStudent(int student_id, int course_id) {
         if(findCourseById(fd_course, &st_course, course_id)) {
             st_reg.count = 1;
             st_reg.course_id = course_id;
-            st_reg.file_name = st_course.name;
+            strcpy(st_reg.file_name, st_course.name);
 
             st_enroll.student_id = student_id;
             st_enroll.status = ACTIVE;
@@ -105,17 +110,10 @@ int readEnrolledRecordFromFile(int fd, struct enrolled_student *st) {
 }
 
 int findEnrolledStudentById(int fd, struct enrolled_student *st, int id) {
-    int n, status = 0;
-    
-    while(1) {
-        if(readEnrolledRecordFromFile(fd, st) == 1) {
-            if(st->student_id == id && st->status == ACTIVE) {
-                status = 1;
-                break;
-            }
-        } else break;
+    while(read(fd, st, sizeof(struct enrolled_student)) > 0) {
+        if(st->student_id == id && st->status == ACTIVE) return 1;
     }
-    return status;
+    return 0;
 }
 
 void removeStudentFromCourse(int student_id, int course_id) {
@@ -124,15 +122,16 @@ void removeStudentFromCourse(int student_id, int course_id) {
     struct enrolled_student st_enroll;
 
     openRegistrationFile(&fd_reg, O_RDWR);
-
     if(findRegistrationByCourseId(fd_reg, &st_reg, course_id)) {
         fd_course_file = open(st_reg.file_name, O_RDWR);
-        findEnrolledStudentById(fd_course_file, &st_enroll, student_id);
-        st_enroll.status = INACTIVE;
-        lseek(fd_reg, -(sizeof(struct enrolled_student)), SEEK_CUR);
-        write(fd_course_file, &st_enroll, sizeof(struct enrolled_student));
+        if(findEnrolledStudentById(fd_course_file, &st_enroll, student_id)) {
+            st_enroll.status = INACTIVE;
+            lseek(fd_course_file, -(sizeof(struct enrolled_student)), SEEK_CUR);
+            write(fd_course_file, &st_enroll, sizeof(struct enrolled_student));
+        }
         close(fd_course_file);
     }
+    close(fd_reg);
 }
 
 void removeLastNStudent(int course_id, int n) {
@@ -143,14 +142,20 @@ void removeLastNStudent(int course_id, int n) {
     openRegistrationFile(&fd_reg, O_RDWR);
 
     if(findRegistrationByCourseId(fd_reg, &st_reg, course_id)) {
+        int count = 0, i = 1;
         fd_course_file = open(st_reg.file_name, O_RDWR);
-
-        for(int i = 1; i <= n; i++) {
+        while(count < n) {
             lseek(fd_course_file, -(i * sizeof(struct enrolled_student)), SEEK_END);
-            read(fd_course_file, &st_enroll, sizeof(struct enrolled_student));
-            st_enroll.status = INACTIVE;
-            lseek(fd_course_file, -(i * sizeof(struct enrolled_student)), SEEK_END);
-            write(fd_course_file, &st_enroll, sizeof(struct enrolled_student));
+            if(read(fd_course_file, &st_enroll, sizeof(struct enrolled_student)) <= 0) break;
+            if(st_enroll.status == ACTIVE) {
+                st_enroll.status = INACTIVE;
+                removeStudentFromCourse(st_enroll.student_id, course_id);
+                removeEnrolledCourse(st_enroll.student_id, course_id);
+                lseek(fd_course_file, -(sizeof(struct enrolled_student)), SEEK_CUR);
+                write(fd_course_file, &st_enroll, sizeof(struct enrolled_student));
+                count++;
+            }
+            i++;
         }
         close(fd_course_file);
     }
