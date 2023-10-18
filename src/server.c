@@ -70,7 +70,7 @@ void adminMenu(int client_socket) {
     char *str;
     char recv_buff[20];
     int n, status = 0;
-    char welcome_msg[250] = "...Welcome to Admin Menu...\n";
+    char welcome_msg[250] = "==========Welcome to Admin Menu==========\n";
     char *menu = "1. Add Student\n2. View Student Details\n3. Add Faculty\n4. View Faculty Details\n5. Activate Student\n\
 6. Block Student\n7. Update Student Details\n8. Update Faculty Details\n9. Logout\nEnter your choice: ";
     strcat(welcome_msg, menu);
@@ -119,7 +119,7 @@ void facultyMenu(int client_socket) {
     char recv_buff[20];
     int n, status = 0;
     char *str;
-    char welcome_msg[250] = "...Welcome to Faculty Menu...\n";
+    char welcome_msg[250] = "==========Welcome to Faculty Menu==========\n";
     char *menu = "1. View Offering Courses\n2. Add new course\n3. Remove course\n4. Update Course\n5. Change password\n\
 6. Logout\nEnter your choice: ";
     strcat(welcome_msg, menu);
@@ -158,7 +158,7 @@ void studentMenu(int client_socket) {
     char recv_buff[20];
     int n, status = 0;
     char *str;
-    char welcome_msg[250] = "...Welcome to Student Menu...\n";
+    char welcome_msg[250] = "==========Welcome to Student Menu==========\n";
     char *menu = "1. View All Courses\n2. Enroll new course\n3. Drop course\n4. View enrolled course details\n5. Change password\n\
 6. Logout\nEnter your choice: ";
     strcat(welcome_msg, menu);

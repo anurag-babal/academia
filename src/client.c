@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     }
     printf("Client to server connection successfully established\n");
 
-    char send_buff[20], recv_buff[1024];
+    char send_buff[50], recv_buff[1024];
     memset(recv_buff, 0, sizeof(recv_buff));
     while(read(sd, recv_buff, sizeof(recv_buff)) > 0) {    
         write(STDOUT_FILENO, recv_buff, strlen(recv_buff));

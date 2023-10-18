@@ -98,6 +98,8 @@ void displayCourseDetail(int client_socket, struct course *st) {
     char *str;
     char buff[50];
 
+    str = "\n====================\n";
+    send(client_socket, str, strlen(str), MSG_MORE);
     str = "Id: ";
     send(client_socket, str, strlen(str), MSG_MORE);
     my_itoa(st->id, buff, 10);
@@ -126,7 +128,7 @@ void displayCourseDetail(int client_socket, struct course *st) {
     my_itoa(st->available_seats, buff, 10);
     send(client_socket, buff, strlen(buff), MSG_MORE);
 
-    str = "\n=============\n";
+    str = "\n====================\n";
     send(client_socket, str, strlen(str), MSG_MORE);
 }
 
@@ -159,7 +161,7 @@ int addCourse(int client_socket, int faculty_id) {
     memset(buff, 0, sizeof(buff));
     my_itoa(st.id, buff, 10);
     send(client_socket, buff, strlen(buff), MSG_MORE);
-    str = "\n=============\n";
+    str = "\n====================\n";
     send(client_socket, str, strlen(str), MSG_MORE);
 }
 
@@ -181,7 +183,7 @@ void viewAllCourses(int client_socket) {
         } else break;
     }
     if(!status) {
-        str = "No course available.\n";
+        str = "==========No course available==========\n";
         send(client_socket, str, strlen(str), MSG_MORE);
     }
     close(fd);
@@ -204,7 +206,7 @@ void viewAllCoursesForFaculty(int client_socket, int faculty_id) {
         } else break;
     }
     if(!status) {
-        str = "No course offered.\n";
+        str = "==========No course offered==========\n";
         send(client_socket, str, strlen(str), MSG_MORE);
     }
     close(fd);
@@ -227,10 +229,11 @@ int modifyCourse(int client_socket) {
             st.available_seats = st.total_seats - enrolled_seats;
         }
         writeCourse(fd, &st, UPDATE);
+        str = "==========Course updated==========\n";
     } else {
-        str = "Course not found\n";
-        send(client_socket, str, strlen(str), MSG_MORE);
+        str = "==========Course not found==========\n";
     }
+    send(client_socket, str, strlen(str), MSG_MORE);
     close(fd);
 }
 
@@ -244,7 +247,7 @@ void removeCourse(int client_socket) {
         st.status = INACTIVE;
         writeCourse(fd, &st, UPDATE);
     } else {
-        str = "Course not found\n";
+        str = "==========Course not found==========\n";
         send(client_socket, str, strlen(str), MSG_MORE);
     }
     close(fd);

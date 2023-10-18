@@ -57,6 +57,8 @@ void openFacultyFile(int *fd, int flag) {
 
 void displayFacultyDetails(int client_socket, struct faculty *st) {
     char *str;
+    str = "\n====================\n";
+    send(client_socket, str, strlen(str), MSG_MORE);
     str = "Name: ";
     send(client_socket, str, strlen(str), MSG_MORE);
     send(client_socket, st->name, strlen(st->name), MSG_MORE);
@@ -81,7 +83,7 @@ void displayFacultyDetails(int client_socket, struct faculty *st) {
     send(client_socket, str, strlen(str), MSG_MORE);
     send(client_socket, st->login_id, strlen(st->login_id), MSG_MORE);
 
-    str = "\n=============\n";
+    str = "\n====================\n";
     send(client_socket, str, strlen(str), MSG_MORE);
 }
 
@@ -154,7 +156,7 @@ int addFaculty(int client_socket) {
     send(client_socket, str, strlen(str), MSG_MORE);
     send(client_socket, buff, strlen(buff), MSG_MORE);
     memset(buff, 0, sizeof(buff));
-    str = "\n=============\n";
+    str = "\n====================\n";
     send(client_socket, str, strlen(str), MSG_MORE);
 }
 
@@ -166,7 +168,7 @@ void viewFaculty(int client_socket) {
     if(getFaculty(client_socket, &st, fd)) {
         displayFacultyDetails(client_socket, &st);
     } else {
-        str = "Faculty not found\n";
+        str = "==========Faculty not found==========\n";
         send(client_socket, str, strlen(str), MSG_MORE);
     }
     close(fd);
@@ -181,7 +183,7 @@ int modifyFaculty(int client_socket) {
         getFacultyDetails(client_socket, &st);
         writeFaculty(fd, &st, UPDATE);
     } else {
-        str = "Faculty not found\n";
+        str = "==========Faculty not found==========\n";
         send(client_socket, str, strlen(str), MSG_MORE);
     }
     close(fd);

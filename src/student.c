@@ -47,6 +47,51 @@ void openStudentFile(int *fd, int flag) {
     }
 }
 
+void displayStudentDetails(int client_socket, struct student *st) {
+    char *str;
+    char buff[10];
+
+    str = "\n====================\n";
+    send(client_socket, str, strlen(str), MSG_MORE);
+    str = "Name: ";
+    send(client_socket, str, strlen(str), MSG_MORE);
+    send(client_socket, st->name, strlen(st->name), MSG_MORE);
+
+    str = "\nAge: ";
+    send(client_socket, str, strlen(str), MSG_MORE);
+    my_itoa(st->age, buff, 10);
+    send(client_socket, buff, strlen(buff), MSG_MORE);
+
+    str = "\nEmail: ";
+    send(client_socket, str, strlen(str), MSG_MORE);
+    send(client_socket, st->email, strlen(st->email), MSG_MORE);
+
+    str = "\nAddress: ";
+    send(client_socket, str, strlen(str), MSG_MORE);
+    send(client_socket, st->address, strlen(st->address), MSG_MORE);
+
+    str = "\nLogin-id: ";
+    send(client_socket, str, strlen(str), MSG_MORE);
+    send(client_socket, st->roll_no, strlen(st->roll_no), MSG_MORE);
+
+    str = "\nEnrolled courses: ";
+    send(client_socket, str, strlen(str), MSG_MORE);
+    memset(buff, 0, sizeof(buff));
+    int enrolled_course;
+    char tmp[10];
+    for(int i = 0; i < MAX_COURSE; i++) {
+        enrolled_course = st->enrolled_courses[i];
+        if(enrolled_course != 0) {
+            my_itoa(enrolled_course, tmp, 10);
+            strcat(buff, " ");
+            strcat(buff, tmp);
+        }
+    }
+    send(client_socket, buff, strlen(buff), MSG_MORE);
+    str = "\n====================\n";
+    send(client_socket, str, strlen(str), MSG_MORE);
+}
+
 void getStudentDetails(int client_socket, struct student *st) {
     char *str;
     char recv_buff[50], buff[50];
@@ -114,7 +159,7 @@ int addStudent(int client_socket) {
     memset(buff, 0, sizeof(buff));
     my_itoa(st.id, buff, 10);
     send(client_socket, buff, strlen(buff), MSG_MORE);
-    msg = "\n============\n";
+    msg = "\n====================\n";
     send(client_socket, msg, strlen(msg), MSG_MORE);
 }
 
@@ -126,46 +171,9 @@ void viewStudent(int client_socket) {
     openStudentFile(&fd, O_RDONLY);
     int id = getIdFromClient(client_socket, "Enter Id: ");
     if(findStudentById(fd, &st, id)) {
-        str = "Name: ";
-        send(client_socket, str, strlen(str), MSG_MORE);
-        send(client_socket, st.name, strlen(st.name), MSG_MORE);
-
-        str = "\nAge: ";
-        send(client_socket, str, strlen(str), MSG_MORE);
-        my_itoa(st.age, buff, 10);
-        send(client_socket, buff, strlen(buff), MSG_MORE);
-
-        str = "\nEmail: ";
-        send(client_socket, str, strlen(str), MSG_MORE);
-        send(client_socket, st.email, strlen(st.email), MSG_MORE);
-
-        str = "\nAddress: ";
-        send(client_socket, str, strlen(str), MSG_MORE);
-        send(client_socket, st.address, strlen(st.address), MSG_MORE);
-
-        str = "\nLogin-id: ";
-        send(client_socket, str, strlen(str), MSG_MORE);
-        send(client_socket, st.roll_no, strlen(st.roll_no), MSG_MORE);
-
-        str = "\nEnrolled courses: ";
-        send(client_socket, str, strlen(str), MSG_MORE);
-        memset(buff, 0, sizeof(buff));
-        int enrolled_course;
-        char tmp[10];
-        for(int i = 0; i < MAX_COURSE; i++) {
-            enrolled_course = st.enrolled_courses[i];
-            if(enrolled_course != 0) {
-                my_itoa(enrolled_course, tmp, 10);
-                strcat(buff, " ");
-                strcat(buff, tmp);
-            }
-        }
-        send(client_socket, buff, strlen(buff), MSG_MORE);
-
-        str = "\n=============\n";
-        send(client_socket, str, strlen(str), MSG_MORE);
+        displayStudentDetails(client_socket, &st);
     } else {
-        str = "Student not found\n";
+        str = "==========Student not found==========\n";
         send(client_socket, str, strlen(str), MSG_MORE);
     }
     close(fd);
@@ -191,7 +199,7 @@ int modifyStudent(int client_socket, int action) {
         }
         writeStudent(fd, &st, UPDATE);
     } else {
-        str = "Student not found\n";
+        str = "==========Student not found==========\n";
         write(client_socket, str, strlen(str));
     }
     close(fd);
@@ -237,9 +245,9 @@ void registerStudent(int client_socket, int student_id) {
     if(findStudentById(fd_student, &st_student, student_id)) {
         printf("st_id: %d\n", st_student.id);
         if(getEnrolledCoursesCount(st_student) > MAX_COURSE) {
-            str = "You have reached your maximum limit\n";
+            str = "==========You have reached your maximum limit==========\n";
         } else if(checkCourseAlreadyEnrolled(st_student, course_id)) {
-            str = "You have already registered for this course\n";
+            str = "==========You have already registered for this course==========\n";
         } else {
             if(findCourseById(fd_course, &st_course, course_id)) {
                 printf("course id: %d\n", st_course.id);
@@ -248,19 +256,19 @@ void registerStudent(int client_socket, int student_id) {
                         updateEnrolledCourses(student_id, &st_student, course_id);
                         updateSeat(course_id, DEC);
                         writeStudent(fd_student, &st_student, UPDATE);
-                        str = "Student registered successfully\n";
+                        str = "==========Student registered successfully==========\n";
                     } else {
-                        str = "Can't register\n";
+                        str = "==========Can't register==========\n";
                     }
                 } else {
-                    str = "Course seats full\n";
+                    str = "==========Course seats full==========\n";
                 }
             } else {
-                str = "Course not found\n";
+                str = "==========Course not found==========\n";
             }
         }
     } else {
-        str = "Student not found\n";
+        str = "==========Student not found==========\n";
     }
     send(client_socket, str, strlen(str), MSG_MORE);
     close(fd_student);
@@ -303,9 +311,9 @@ void dropCourse(int client_socket, int student_id) {
         writeStudent(fd_student, &st_student, UPDATE);
         updateSeat(course_id, INC);
         close(fd_student);
-        str = "Course dropped successfully";
+        str = "==========Course dropped successfully==========\n";
     } else {
-        str = "Course not found\n";
+        str = "==========Course not found==========\n";
     }
     send(client_socket, str, strlen(str), MSG_MORE);
     close(fd_course);
@@ -328,7 +336,7 @@ void viewEnrolledCourses(int client_socket, int student_id) {
         }
         close(fd_course);
     } else {
-        str = "Student not found\n";
+        str = "==========Student not found==========\n";
         send(client_socket, str, strlen(str), MSG_MORE);
     }
     close(fd_student);

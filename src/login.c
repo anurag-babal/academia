@@ -87,7 +87,7 @@ void changePassword(int client_socket, int type, char *login_id) {
         previousNLoginRecord(fd, 1, SEEK_CUR);
         write(fd, &st, sizeof(struct login));
     } else {
-        str = "Password incorrect";
+        str = "==========Password incorrect==========\n";
         write(client_socket, str, strlen(str));
         read_line(client_socket, recv_buff, sizeof(recv_buff));
     }
