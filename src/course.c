@@ -6,14 +6,16 @@
 #include "../headers/registration.h"
 
 int readCourseRecordFromFile(int fd, struct course *st) {
-    int status = 0;
+    int status = 1;
+    lockFile(fd, READ);
     int n = read(fd, st, sizeof(struct course));
     if(n < 0) {
         perror("read");
-        return -1;
+        status = -1;
     }
-    if(n == 0) return 0;
-    return 1;
+    if(n == 0) status = 0;
+    lockFile(fd, UNLOCK);
+    return status;
 }
 
 int findCourseById(int fd, struct course *st, int id) {
@@ -55,7 +57,9 @@ int writeCourse(int fd, struct course *st, int operation) {
             previousRecord(fd, SEEK_CUR);
             break;
     }
+    lockFile(fd, WRITE);
     write(fd, st, sizeof(struct course));
+    lockFile(fd, UNLOCK);
 }
 
 void openCourseFile(int *fd, int flag) {
@@ -141,6 +145,7 @@ int addCourse(int client_socket, int faculty_id) {
     char *str;
 
     getCourseDetails(client_socket, &st);
+    lockFile(fd, READ);
     if(read(fd, buff, 1) == 0) {
         st.id = 1;
     } else {
@@ -148,6 +153,7 @@ int addCourse(int client_socket, int faculty_id) {
         read(fd, &tmp, sizeof(tmp));
         st.id = tmp.id + 1;
     }
+    lockFile(fd, WRITE);
 
     st.available_seats = st.total_seats;
     st.faculty_id = faculty_id;

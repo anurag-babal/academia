@@ -44,6 +44,7 @@ int login(int client_socket, int type) {
         case FACULTY:
         case STUDENT:
             openLoginFile(&fd, O_RDONLY);
+            lockFile(fd, READ);
             while(1) {
                 n = read(fd, &st, sizeof(struct login));
                 if(n < 0) {
@@ -56,6 +57,7 @@ int login(int client_socket, int type) {
                     break;
                 }
             }
+            lockFile(fd, UNLOCK);
     }
 
     if(status)

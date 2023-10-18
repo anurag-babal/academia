@@ -17,11 +17,35 @@ int readStudentRecordFromFile(int fd, struct student *st) {
     return 1;
 }
 
-int findStudentById(int fd, struct student *st, int id) {
-    while(read(fd, st, sizeof(struct student)) > 0) {
-        if(st->id == id) return 1;
+int lockRecord(int fd, int type, int whence) {
+    struct flock fl;
+    switch(type) {
+        case READ:
+            fl.l_type = F_RDLCK;
+            break;
+        case WRITE:
+            fl.l_type = F_WRLCK;
+            break;
+        case UNLOCK:
+            fl.l_type = F_UNLCK;
     }
-    return 0;
+    fl.l_whence = SEEK_CUR;
+    fl.l_len = sizeof(struct student);
+    fl.l_start = 0;
+    return fcntl(fd, F_SETLKW, &fl);
+}
+
+int findStudentById(int fd, struct student *st, int id) {
+    int status = 0;
+    lockFile(fd, READ);
+    while(read(fd, st, sizeof(struct student)) > 0) {
+        if(st->id == id) {
+            status = 1;
+            break;
+        }
+    }
+    lockFile(fd, UNLOCK);
+    return status;
 }
 
 void previousNStudent(int fd, int n, int whence) {
@@ -29,6 +53,7 @@ void previousNStudent(int fd, int n, int whence) {
 }
 
 int writeStudent(int fd, struct student *st, int operation) {
+    int status;
     switch(operation) {
         case ADD:
             lseek(fd, 0, SEEK_END);
@@ -37,7 +62,10 @@ int writeStudent(int fd, struct student *st, int operation) {
             previousNStudent(fd, 1, SEEK_CUR);
             break;
     }
-    return write(fd, st, sizeof(struct student));
+    lockFile(fd, WRITE);
+    status = write(fd, st, sizeof(struct student));
+    lockFile(fd, UNLOCK);
+    return status;
 }
 
 void openStudentFile(int *fd, int flag) {
@@ -130,6 +158,7 @@ int addStudent(int client_socket) {
 
     openStudentFile(&fd, O_RDWR);
     getStudentDetails(client_socket, &st);
+    lockFile(fd, READ);
     if(read(fd, buff, 1) <= 0) {
         st.id = 1;
     } else {
@@ -137,6 +166,8 @@ int addStudent(int client_socket) {
         read(fd, &tmp, sizeof(struct student));
         st.id = tmp.id + 1;
     }
+    lockFile(fd, UNLOCK);
+
     st.status = 0;
     char abc[20];
     my_itoa(st.id, abc, 10);
@@ -321,7 +352,7 @@ void dropCourse(int client_socket, int student_id) {
 
 void viewEnrolledCourses(int client_socket, int student_id) {
     char *str;
-    int fd_student, fd_course;
+    int fd_student, fd_course, count = 0;
     struct student st;
     struct course st_course;
     openStudentFile(&fd_student, O_RDONLY);
@@ -332,7 +363,12 @@ void viewEnrolledCourses(int client_socket, int student_id) {
             if(course_id != 0) {
                 findCourseById(fd_course, &st_course, course_id);
                 displayCourseDetail(client_socket, &st_course);
+                count++;
             }
+        }
+        if(!count) {
+            str = "==========Not enrolled any course==========\n";
+            send(client_socket, str, strlen(str), MSG_MORE);
         }
         close(fd_course);
     } else {

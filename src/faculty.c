@@ -7,13 +7,16 @@
 #include "../headers/login.h"
 
 int readFacultyRecordFromFile(int fd, struct faculty *st) {
+    int status = 1;
+    lockFile(fd, READ);
     int n = read(fd, st, sizeof(struct faculty));
     if(n < 0) {
         perror("read");
-        return -1;
+        status = -1;
     }
-    if(n == 0) return 0;
-    return 1;
+    if(n == 0) status = 0;
+    lockFile(fd, UNLOCK);
+    return status;
 }
 
 int findFacultyById(int fd, struct faculty *st, int id) {
@@ -45,7 +48,9 @@ int writeFaculty(int fd, struct faculty *st, int operation) {
             previousNFaculty(fd, 1, SEEK_CUR);
             break;
     }
+    lockFile(fd, WRITE);
     write(fd, st, sizeof(struct faculty));
+    lockFile(fd, UNLOCK);
 }
 
 void openFacultyFile(int *fd, int flag) {
@@ -132,6 +137,7 @@ int addFaculty(int client_socket) {
     char buff[50];
 
     getFacultyDetails(client_socket, &st);
+    lockFile(fd, READ);
     if(read(fd, buff, 1) <= 0) {
         st.id = 1;
     } else {
@@ -139,6 +145,7 @@ int addFaculty(int client_socket) {
         read(fd, &tmp, sizeof(struct faculty));
         st.id = tmp.id + 1;
     }
+    lockFile(fd, UNLOCK);
 
     printf("%d\n", st.id);
     my_itoa(st.id, buff, 10);

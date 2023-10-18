@@ -1,6 +1,7 @@
 #include "../headers/headers.h"
 #include "../headers/config.h"
 #include "../headers/read_line.h"
+#include "../headers/constant.h"
 
 void my_strcpy(char *dest, char *src) {
     while (*src != '\n') {
@@ -33,4 +34,21 @@ int getIdFromClient(int client_socket, char *str) {
     write(client_socket, str, strlen(str));
     read_line(client_socket, recv_buff, sizeof(recv_buff));
     return atoi(recv_buff);
+}
+
+int lockFile(int fd, int type) {
+    struct flock fl;
+    switch(type) {
+        case READ:
+            fl.l_type = F_RDLCK;
+            break;
+        case WRITE:
+            fl.l_type = F_WRLCK;
+            break;
+        case UNLOCK:
+            fl.l_type = F_UNLCK;
+    }
+    fl.l_len = 0;
+    fl.l_start = 0;
+    return fcntl(fd, F_SETLKW, &fl);
 }

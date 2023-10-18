@@ -17,6 +17,7 @@ void openLoginFile(int *fd, int flag) {
 
 int findLoginDetails(int fd, struct login *st, char *login_id, char *password, int type) {
     int status = 0, n;
+    lockFile(fd, READ);
     while(1) {
         n = read(fd, st, sizeof(struct login));
         if(n < 0) {
@@ -29,6 +30,7 @@ int findLoginDetails(int fd, struct login *st, char *login_id, char *password, i
             break;
         }
     }
+    lockFile(fd, UNLOCK);
     return status;
 }
 
@@ -51,7 +53,9 @@ void saveLoginDetails(int id, char *login_id, char *password, int type, int oper
             previousNLoginRecord(fd, 1, SEEK_CUR);
             break;
     }
+    lockFile(fd, WRITE);
     write(fd, &st, sizeof(struct login));
+    lockFile(fd, UNLOCK);
 }
 
 int checkLoginDetails(char *login_id, char *password, int type) {

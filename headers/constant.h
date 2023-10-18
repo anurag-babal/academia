@@ -13,6 +13,9 @@
 #define ADMIN 6
 #define FACULTY 17
 #define STUDENT 18
+#define READ 19
+#define WRITE 20
+#define UNLOCK 21
 
 #define DEFAULT_PASS "pass"
 

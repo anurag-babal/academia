@@ -11,7 +11,7 @@ struct student {
     char address[50];
     char roll_no[10];
     int status;
-    int enrolled_courses[5];
+    int enrolled_courses[MAX_COURSE];
 };
 
 void viewAllCourses(int);
