@@ -65,15 +65,12 @@ int checkLoginDetails(char *login_id, char *password, int type) {
 }
 
 void changePassword(int client_socket, int type, char *login_id) {
-    char faculty_login_id[50], student_login_id[50];
     char *str;
     char recv_buff[50], password[50];
     struct login st;
     int fd;
-    char buff[50];
     openLoginFile(&fd, O_RDWR);
 
-    memset(buff, 0, sizeof(recv_buff));
     str = "Old Password: ";
     write(client_socket, str, strlen(str));
     read_line(client_socket, recv_buff, sizeof(recv_buff));
@@ -86,11 +83,11 @@ void changePassword(int client_socket, int type, char *login_id) {
         my_strcpy(st.password, recv_buff);
         previousNLoginRecord(fd, 1, SEEK_CUR);
         write(fd, &st, sizeof(struct login));
+        str = "==========Password changed==========\n";
     } else {
         str = "==========Password incorrect==========\n";
-        write(client_socket, str, strlen(str));
-        read_line(client_socket, recv_buff, sizeof(recv_buff));
     }
+    send(client_socket, str, strlen(str), MSG_MORE);
 
     close(fd);
 }
