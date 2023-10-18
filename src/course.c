@@ -245,11 +245,13 @@ void removeCourse(int client_socket) {
     int id = getCourseIdFromClient(client_socket);
     if(findCourseById(fd, &st, id)) {
         st.status = INACTIVE;
+        removeLastNStudent(id, st.total_seats - st.available_seats);
         writeCourse(fd, &st, UPDATE);
+        str = "==========Course remmoved==========\n";
     } else {
         str = "==========Course not found==========\n";
-        send(client_socket, str, strlen(str), MSG_MORE);
     }
+    send(client_socket, str, strlen(str), MSG_MORE);
     close(fd);
 }
 
