@@ -136,10 +136,10 @@ void facultyMenu(int client_socket) {
                 addCourse(client_socket, st.id);
                 break;
             case 3:
-                removeCourse(client_socket);
+                removeCourse(client_socket, st.id);
                 break;
             case 4:
-                modifyCourse(client_socket);
+                modifyCourse(client_socket, st.id);
                 break;
             case 5:
                 changePassword(client_socket, FACULTY, st.login_id);

@@ -218,24 +218,28 @@ void viewAllCoursesForFaculty(int client_socket, int faculty_id) {
     close(fd);
 }
 
-int modifyCourse(int client_socket) {
+int modifyCourse(int client_socket, int faculty_id) {
     char *str;
     struct course st;
     int fd;
     openCourseFile(&fd, O_RDWR);
     int id = getIdFromClient(client_socket, "Enter course id: ");
     if(findCourseById(fd, &st, id)) {
-        int total_seats = st.total_seats;
-        int enrolled_seats = st.total_seats - st.available_seats;
-        getCourseDetails(client_socket, &st);
-        if(st.total_seats < enrolled_seats) {
-            removeLastNStudent(st.id, (enrolled_seats - st.total_seats));
-            st.available_seats = 0;
+        if(st.faculty_id != faculty_id) {
+            str = "==========Course not offered by you==========\n";
         } else {
-            st.available_seats = st.total_seats - enrolled_seats;
+            int total_seats = st.total_seats;
+            int enrolled_seats = st.total_seats - st.available_seats;
+            getCourseDetails(client_socket, &st);
+            if(st.total_seats < enrolled_seats) {
+                removeLastNStudent(st.id, (enrolled_seats - st.total_seats));
+                st.available_seats = 0;
+            } else {
+                st.available_seats = st.total_seats - enrolled_seats;
+            }
+            writeCourse(fd, &st, UPDATE);
+            str = "==========Course updated==========\n";
         }
-        writeCourse(fd, &st, UPDATE);
-        str = "==========Course updated==========\n";
     } else {
         str = "==========Course not found==========\n";
     }
@@ -243,17 +247,21 @@ int modifyCourse(int client_socket) {
     close(fd);
 }
 
-void removeCourse(int client_socket) {
+void removeCourse(int client_socket, int faculty_id) {
     char *str;
     struct course st;
     int fd;
     openCourseFile(&fd, O_RDWR);
     int id = getCourseIdFromClient(client_socket);
     if(findCourseById(fd, &st, id)) {
-        st.status = INACTIVE;
-        removeLastNStudent(id, st.total_seats - st.available_seats);
-        writeCourse(fd, &st, UPDATE);
-        str = "==========Course remmoved==========\n";
+        if(st.faculty_id != faculty_id) {
+            str = "==========Course not offered by you==========\n";
+        } else {
+            st.status = INACTIVE;
+            removeLastNStudent(id, st.total_seats - st.available_seats);
+            writeCourse(fd, &st, UPDATE);
+            str = "==========Course remmoved==========\n";
+        }
     } else {
         str = "==========Course not found==========\n";
     }
