@@ -2,6 +2,7 @@ CC := gcc
 SRC := src
 OBJ := obj
 
+$(shell mkdir -p $(OBJ))
 # foo.o: $(SRC)/registration.c
 #     $(CC) -I$(SRC) -c $< -o $@
 	
@@ -42,4 +43,4 @@ read_line.o: $(SRC)/read_line.c
 
 
 clean:
-	rm -rf *.o
+	rm -rf $(OBJ)
